@@ -7,9 +7,9 @@ import com.doncapo.game.Main;
 public class DesktopLauncher {
 	public static void main (String[] arg) {
 		LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
-		config.title = "Main";
-		config.width = 800;
-		config.height = 480;
+		config.title = "DropletGame";
+		config.width = 2560;
+		config.height = 1440;
 		new LwjglApplication(new Main(), config);
 	}
 }

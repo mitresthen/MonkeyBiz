@@ -1,21 +1,19 @@
 package com.doncapo.game;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.Pool;
 import com.badlogic.gdx.utils.TimeUtils;
-import com.badlogic.gdx.math.Rectangle;
-
-import java.util.Iterator;
 
 /**
  * Created by Havard on 17.04.2017.
@@ -24,54 +22,89 @@ public class GameScreen implements Screen {
     final Main game;
 
     private Texture dropImage;
+    private Texture explosionImage;
     private Texture bucketImage;
+    private Texture backgroundImage;
     private Sound dropSound;
     private Music rainMusic;
+
     private OrthographicCamera camera;
-    private Rectangle bucket;
+    private Sprite bucket;
+    private Sprite backgroundSprite;
     private Vector3 touchPos;
-    private Array<Rectangle> raindrops;
+    private final Array<Raindrop> activeRaindrops;
+    private final Pool<Raindrop> raindropPool;
+
     private long lastDropTime;
     private int dropsGathered;
+    private int lives;
+    private int dropFactor;
+
+    private float red = 0.0f;
+    private float green = 0.05f;
+    private float blue = 0.2f;
+
+    private int screenWidth = 2560;
+    private int screenHeight = 1440;
+
 
     public GameScreen(final Main game) {
         this.game = game;
 
         dropImage = new Texture(Gdx.files.internal("droplet.png"));
+        explosionImage = new Texture(Gdx.files.internal("explosion.png"));
         bucketImage = new Texture(Gdx.files.internal("bucket.png"));
+
+        prepareBackground();
 
         dropSound = Gdx.audio.newSound(Gdx.files.internal("drop.wav"));
         rainMusic = Gdx.audio.newMusic(Gdx.files.internal("rain.mp3"));
         rainMusic.setLooping(true);
 
         camera = new OrthographicCamera();
-        camera.setToOrtho(false, 800, 480);
+        camera.setToOrtho(false, screenWidth, screenHeight);
 
         game.batch = new SpriteBatch();
         createBucket();
         touchPos = new Vector3();
 
-        raindrops = new Array<Rectangle>();
-        spawnRaindrop();
+        activeRaindrops = new Array<Raindrop>();
+        raindropPool = new Pool<Raindrop>() {
+            @Override
+            protected Raindrop newObject() {
+                return new Raindrop();
+            }
+        };
+
+        lives = 3;
+        dropFactor = 200;
+        lastDropTime = TimeUtils.nanoTime();
+    }
+
+    private void prepareBackground(){
+        backgroundImage = new Texture(Gdx.files.internal("chaosBackground.png"));
+        backgroundImage.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        backgroundSprite = new Sprite(backgroundImage);
+        backgroundSprite.setOrigin(0,0);
+        backgroundSprite.setSize(screenWidth, screenHeight);
     }
 
     private void createBucket(){
-        bucket = new Rectangle();
-        bucket.x = 800/2 -64/2;
-        bucket.y = 20;
-
-        bucket.width = 64;
-        bucket.height = 64;
+        bucket = new Sprite(bucketImage);
+        bucket.setSize(64, 64);
+        bucket.setX((screenWidth/2)-(bucket.getWidth()/2));
+        bucket.setY(bucketRestPosition());
     }
 
     private void spawnRaindrop(){
-        Rectangle raindrop = new Rectangle();
-        raindrop.x = MathUtils.random(0, 800-64);
-        raindrop.y = 480;
-        raindrop.width = 64;
-        raindrop.height = 64;
-        raindrops.add(raindrop);
+        Raindrop raindrop = raindropPool.obtain();
+        raindrop.init(screenWidth, MathUtils.random(raindrop.getWidth()*4, (screenHeight/2)-raindrop.getWidth()));
+        activeRaindrops.add(raindrop);
         lastDropTime = TimeUtils.nanoTime();
+    }
+
+    private float bucketRestPosition(){
+        return screenHeight-(2*bucket.getHeight());
     }
 
     @Override
@@ -79,42 +112,97 @@ public class GameScreen implements Screen {
         rainMusic.play();
     }
 
+    private void renderBackground(){
+        backgroundSprite.draw(game.batch);
+    }
+
     @Override
     public void render (float delta) {
-        Gdx.gl.glClearColor(0, 0, 0.2f, 1);
+        Gdx.gl.glClearColor(red, green, blue, 1);
+
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         camera.update();
         game.batch.setProjectionMatrix(camera.combined);
 
         game.batch.begin();
-        game.font.draw(game.batch, "Drops Collected: " + dropsGathered, 0, 480);
-        game.batch.draw(bucketImage, bucket.x, bucket.y);
-        for(Rectangle raindrop: raindrops){
-            game.batch.draw(dropImage, raindrop.x, raindrop.y);
+
+        renderBackground();
+        game.font.getRegion().getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        game.font.getData().setScale(2, 2);
+        game.font.draw(game.batch, "Score: " + dropsGathered, 0, screenHeight);
+        String remainingLives = "Lives remaining: " + lives;
+        game.font.draw(game.batch, remainingLives, screenWidth-screenWidth/8, screenHeight);
+        bucket.draw(game.batch);
+        for(Raindrop raindrop: activeRaindrops){
+            if(raindrop.alive)
+                game.batch.draw(dropImage, raindrop.getX(), raindrop.getY());
+            else
+                game.batch.draw(explosionImage, raindrop.getX(), raindrop.getY());
         }
+
         game.batch.end();
 
-        if(Gdx.input.isTouched()){
-            touchPos.set(Gdx.input.getX(), Gdx.input.getY(), 0);
-            camera.unproject(touchPos);
-            bucket.x = (int)(touchPos.x - (64/2));
-        }
-        if(Gdx.input.isKeyPressed(Input.Keys.LEFT)) bucket.x -= 200 * Gdx.graphics.getDeltaTime();
-        if(Gdx.input.isKeyPressed(Input.Keys.RIGHT)) bucket.x += 200 * Gdx.graphics.getDeltaTime();
-        if(bucket.x < 0) bucket.x = 0;
-        if(bucket.x > 800 - 64) bucket.x = 800-64;
-        if(TimeUtils.nanoTime() - lastDropTime > 1000000000) spawnRaindrop();
-        Iterator<Rectangle> iter = raindrops.iterator();
-        while(iter.hasNext()){
-            Rectangle raindrop = iter.next();
-            raindrop.y -= 200 * Gdx.graphics.getDeltaTime();
-            if(raindrop.y + 64 < 0) iter.remove();
-            if(raindrop.overlaps(bucket)){
-                dropsGathered++;
-                dropSound.play();
-                iter.remove();
+        updateBucket();
+
+        if(TimeUtils.nanoTime() - lastDropTime > (5000000000l)) spawnRaindrop();
+
+        Raindrop tempDrop;
+        int len = activeRaindrops.size;
+        for(int i = len; --i >= 0;){
+            tempDrop = activeRaindrops.get(i);
+            tempDrop.update(dropFactor, Gdx.graphics.getDeltaTime());
+
+            if(tempDrop.alive == false){
+                activeRaindrops.removeIndex(i);
+                raindropPool.free(tempDrop);
+            }
+
+            if(tempDrop.getX() + tempDrop.getWidth() < 0){
+                looseLife();
+                tempDrop.alive = false;
+            }
+            else if(tempDrop.overlaps(bucket.getBoundingRectangle())){
+                gatherDrop(tempDrop);
+                tempDrop.alive = false;
             }
         }
+    }
+
+    private float goalY = 0;
+    private void updateBucket(){
+        if(goalY < 10){
+            float yMovement = (screenHeight/2)*Gdx.graphics.getDeltaTime();
+            bucket.translateY(yMovement);
+        }
+        if(Gdx.input.isTouched() && bucket.getY() >= bucketRestPosition()){
+            goalY += Gdx.graphics.getDeltaTime()*(screenHeight/2);
+        }
+        else{
+            float yMovement = goalY /15;
+            bucket.translateY(-yMovement);
+            goalY -= yMovement;
+        }
+        if(goalY > bucketRestPosition())
+            goalY = bucketRestPosition();
+        if(bucket.getY() < 0) bucket.setY(0);
+        if(bucket.getY() > bucketRestPosition()) bucket.setY(bucketRestPosition());
+    }
+
+    private void looseLife(){
+        lives--;
+        if(lives == 0){
+            endGame();
+        }
+    }
+
+    private void gatherDrop(Raindrop gatheredDrop){
+        dropsGathered++; // ((int)(screenHeight-gatheredDrop.getY())/100) + 5;
+        dropSound.play();
+    }
+
+    private void endGame(){
+        rainMusic.stop();
+        game.setScreen(new GameOverScreen(game, dropsGathered));
     }
 
     @Override
@@ -124,7 +212,8 @@ public class GameScreen implements Screen {
 
     @Override
     public void pause() {
-
+        rainMusic.stop();
+        game.setScreen(new PauseScreen(game, this));
     }
 
     @Override
@@ -141,7 +230,10 @@ public class GameScreen implements Screen {
     public void dispose () {
         dropImage.dispose();
         bucketImage.dispose();
+        dropImage.dispose();
+        backgroundImage.dispose();
         dropSound.dispose();
         rainMusic.dispose();
     }
+
 }
