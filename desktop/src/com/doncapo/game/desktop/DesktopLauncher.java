@@ -8,8 +8,8 @@ public class DesktopLauncher {
 	public static void main (String[] arg) {
 		LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
 		config.title = "DropletGame";
-		config.width = 2560;
-		config.height = 1440;
+		config.width = 480;
+		config.height = 800;
 		new LwjglApplication(new Main(), config);
 	}
 }

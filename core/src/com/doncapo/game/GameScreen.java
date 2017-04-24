@@ -44,8 +44,8 @@ public class GameScreen implements Screen {
     private float green = 0.05f;
     private float blue = 0.2f;
 
-    private int screenWidth = 2560;
-    private int screenHeight = 1440;
+    private int screenWidth = 1440;
+    private int screenHeight = 2560;
 
 
     public GameScreen(final Main game) {
@@ -91,7 +91,7 @@ public class GameScreen implements Screen {
 
     private void createBucket(){
         bucket = new Sprite(bucketImage);
-        bucket.setSize(64, 64);
+        bucket.setSize(128, 128);
         bucket.setX((screenWidth/2)-(bucket.getWidth()/2));
         bucket.setY(bucketRestPosition());
     }
