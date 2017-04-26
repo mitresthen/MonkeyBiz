@@ -10,7 +10,6 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
-import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Pool;
 import com.badlogic.gdx.utils.TimeUtils;
@@ -21,28 +20,29 @@ import com.badlogic.gdx.utils.TimeUtils;
 public class GameScreen implements Screen {
     final Main game;
 
-    private Texture dropImage;
-    private Texture explosionImage;
-    private Texture bucketImage;
+    private Texture bananasImage;
+    private Texture appleImage;
+    private Texture pineappleImage;
+
+    private Texture mainMonkeyImage;
+    private Texture mainMonkeyGrabbingImage;
+    private Texture monkeyTailBranchImage;
+
     private Texture backgroundImage;
     private Sound dropSound;
     private Music rainMusic;
 
     private OrthographicCamera camera;
-    private Sprite bucket;
+    private Sprite mainMonkey;
+    private Sprite branchTailSprite;
     private Sprite backgroundSprite;
-    private Vector3 touchPos;
-    private final Array<Raindrop> activeRaindrops;
-    private final Pool<Raindrop> raindropPool;
+    private final Array<Fruit> activeRaindrops;
+    private final Pool<Fruit> raindropPool;
 
     private long lastDropTime;
     private int dropsGathered;
     private int lives;
     private int dropFactor;
-
-    private float red = 0.0f;
-    private float green = 0.05f;
-    private float blue = 0.2f;
 
     private int screenWidth = 1440;
     private int screenHeight = 2560;
@@ -51,9 +51,13 @@ public class GameScreen implements Screen {
     public GameScreen(final Main game) {
         this.game = game;
 
-        dropImage = new Texture(Gdx.files.internal("droplet.png"));
-        explosionImage = new Texture(Gdx.files.internal("explosion.png"));
-        bucketImage = new Texture(Gdx.files.internal("bucket.png"));
+        bananasImage = new Texture(Gdx.files.internal("fruits/bananas.png"));
+        appleImage = new Texture(Gdx.files.internal("fruits/apple.png"));
+        pineappleImage = new Texture(Gdx.files.internal("fruits/pineapple.png"));
+
+        mainMonkeyImage = new Texture(Gdx.files.internal("mainMonkey.png"));
+        mainMonkeyGrabbingImage = new Texture(Gdx.files.internal("mainMonkeyGrabbing.png"));
+        monkeyTailBranchImage = new Texture(Gdx.files.internal("monkeyTailBranch.png"));
 
         prepareBackground();
 
@@ -61,23 +65,34 @@ public class GameScreen implements Screen {
         rainMusic = Gdx.audio.newMusic(Gdx.files.internal("rain.mp3"));
         rainMusic.setLooping(true);
 
+
         camera = new OrthographicCamera();
         camera.setToOrtho(false, screenWidth, screenHeight);
 
         game.batch = new SpriteBatch();
-        createBucket();
-        touchPos = new Vector3();
+        createMonkeyTail();
+        createMonkey();
 
-        activeRaindrops = new Array<Raindrop>();
-        raindropPool = new Pool<Raindrop>() {
+        activeRaindrops = new Array<Fruit>();
+        raindropPool = new Pool<Fruit>() {
             @Override
-            protected Raindrop newObject() {
-                return new Raindrop();
+            protected Fruit newObject() {
+                int rnd = MathUtils.random(0, 2);
+                switch (rnd) {
+                    case 0:
+                        return new Fruit(appleImage);
+                    case 1:
+                        return new Fruit(bananasImage);
+                    case 2:
+                        return new Fruit(pineappleImage);
+                    default:
+                        return new Fruit(appleImage);
+                }
             }
         };
 
         lives = 3;
-        dropFactor = 200;
+        dropFactor = 300;
         lastDropTime = TimeUtils.nanoTime();
     }
 
@@ -89,22 +104,29 @@ public class GameScreen implements Screen {
         backgroundSprite.setSize(screenWidth, screenHeight);
     }
 
-    private void createBucket(){
-        bucket = new Sprite(bucketImage);
-        bucket.setSize(128, 128);
-        bucket.setX((screenWidth/2)-(bucket.getWidth()/2));
-        bucket.setY(bucketRestPosition());
+    private void createMonkey(){
+        mainMonkey = new Sprite(mainMonkeyImage);
+        mainMonkey.setSize(256, 256);
+        mainMonkey.setX((screenWidth/2)-(mainMonkey.getWidth()/2));
+        mainMonkey.setY(bucketRestPosition());
     }
 
-    private void spawnRaindrop(){
-        Raindrop raindrop = raindropPool.obtain();
-        raindrop.init(screenWidth, MathUtils.random(raindrop.getWidth()*4, (screenHeight/2)-raindrop.getWidth()));
-        activeRaindrops.add(raindrop);
+    private void createMonkeyTail(){
+        branchTailSprite = new Sprite(monkeyTailBranchImage);
+        branchTailSprite.setSize(256, 64);
+        branchTailSprite.setX((screenWidth/2)-(monkeyTailBranchImage.getWidth()/2));
+        branchTailSprite.setY(screenHeight-256);
+    }
+
+    private void spawnFruit(){
+        Fruit fruit = raindropPool.obtain();
+        fruit.init(screenWidth, MathUtils.random(fruit.getWidth(), (screenHeight/2)));
+        activeRaindrops.add(fruit);
         lastDropTime = TimeUtils.nanoTime();
     }
 
     private float bucketRestPosition(){
-        return screenHeight-(2*bucket.getHeight());
+        return screenHeight-(2* mainMonkey.getHeight());
     }
 
     @Override
@@ -118,7 +140,7 @@ public class GameScreen implements Screen {
 
     @Override
     public void render (float delta) {
-        Gdx.gl.glClearColor(red, green, blue, 1);
+        Gdx.gl.glClearColor(0, 0, 0.2f, 1);
 
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         camera.update();
@@ -127,26 +149,26 @@ public class GameScreen implements Screen {
         game.batch.begin();
 
         renderBackground();
+
         game.font.getRegion().getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         game.font.getData().setScale(2, 2);
         game.font.draw(game.batch, "Score: " + dropsGathered, 0, screenHeight);
         String remainingLives = "Lives remaining: " + lives;
-        game.font.draw(game.batch, remainingLives, screenWidth-screenWidth/8, screenHeight);
-        bucket.draw(game.batch);
-        for(Raindrop raindrop: activeRaindrops){
-            if(raindrop.alive)
-                game.batch.draw(dropImage, raindrop.getX(), raindrop.getY());
-            else
-                game.batch.draw(explosionImage, raindrop.getX(), raindrop.getY());
+        game.font.draw(game.batch, remainingLives, 3*(screenWidth/4), screenHeight);
+
+        branchTailSprite.draw(game.batch);
+        mainMonkey.draw(game.batch);
+        for(Fruit fruit : activeRaindrops){
+            game.batch.draw(fruit.fruitTexture, fruit.getX(), fruit.getY());
         }
 
         game.batch.end();
 
         updateBucket();
 
-        if(TimeUtils.nanoTime() - lastDropTime > (5000000000l)) spawnRaindrop();
+        if(TimeUtils.nanoTime() - lastDropTime > (5000000000l)) spawnFruit();
 
-        Raindrop tempDrop;
+        Fruit tempDrop;
         int len = activeRaindrops.size;
         for(int i = len; --i >= 0;){
             tempDrop = activeRaindrops.get(i);
@@ -161,7 +183,7 @@ public class GameScreen implements Screen {
                 looseLife();
                 tempDrop.alive = false;
             }
-            else if(tempDrop.overlaps(bucket.getBoundingRectangle())){
+            else if(tempDrop.overlaps(mainMonkey.getBoundingRectangle())){
                 gatherDrop(tempDrop);
                 tempDrop.alive = false;
             }
@@ -172,20 +194,21 @@ public class GameScreen implements Screen {
     private void updateBucket(){
         if(goalY < 10){
             float yMovement = (screenHeight/2)*Gdx.graphics.getDeltaTime();
-            bucket.translateY(yMovement);
+            mainMonkey.translateY(yMovement);
         }
-        if(Gdx.input.isTouched() && bucket.getY() >= bucketRestPosition()){
+        if(Gdx.input.isTouched() && mainMonkey.getY() >= bucketRestPosition()){
+            mainMonkey.setTexture(mainMonkeyImage);
             goalY += Gdx.graphics.getDeltaTime()*(screenHeight/2);
         }
         else{
             float yMovement = goalY /15;
-            bucket.translateY(-yMovement);
+            mainMonkey.translateY(-yMovement);
             goalY -= yMovement;
         }
         if(goalY > bucketRestPosition())
             goalY = bucketRestPosition();
-        if(bucket.getY() < 0) bucket.setY(0);
-        if(bucket.getY() > bucketRestPosition()) bucket.setY(bucketRestPosition());
+        if(mainMonkey.getY() < 0) mainMonkey.setY(0);
+        if(mainMonkey.getY() > bucketRestPosition()) mainMonkey.setY(bucketRestPosition());
     }
 
     private void looseLife(){
@@ -195,8 +218,9 @@ public class GameScreen implements Screen {
         }
     }
 
-    private void gatherDrop(Raindrop gatheredDrop){
-        dropsGathered++; // ((int)(screenHeight-gatheredDrop.getY())/100) + 5;
+    private void gatherDrop(Fruit gatheredDrop){
+        dropsGathered++;
+        mainMonkey.setTexture(mainMonkeyGrabbingImage);
         dropSound.play();
     }
 
@@ -228,9 +252,9 @@ public class GameScreen implements Screen {
 
     @Override
     public void dispose () {
-        dropImage.dispose();
-        bucketImage.dispose();
-        dropImage.dispose();
+        bananasImage.dispose();
+        mainMonkeyImage.dispose();
+        bananasImage.dispose();
         backgroundImage.dispose();
         dropSound.dispose();
         rainMusic.dispose();

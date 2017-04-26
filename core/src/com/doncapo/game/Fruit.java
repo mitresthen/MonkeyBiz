@@ -2,18 +2,21 @@ package com.doncapo.game;
 
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Pool;
+import com.badlogic.gdx.graphics.Texture;
 
 /**
  * Created by Havard on 23.04.2017.
  */
-public class Raindrop implements Pool.Poolable {
+public class Fruit implements Pool.Poolable {
     private Rectangle raindropStat;
     public boolean alive;
+    public Texture fruitTexture;
 
-    public Raindrop(){
+    public Fruit(Texture fruitTexture){
         this.raindropStat = new Rectangle();
-        raindropStat.width = 64;
-        raindropStat.height = 64;
+        raindropStat.width = 128;
+        raindropStat.height = 128;
+        this.fruitTexture = fruitTexture;
     }
 
     public void init(float x, float y){
