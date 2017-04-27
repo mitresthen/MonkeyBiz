@@ -26,7 +26,6 @@ www-test/
 /android/gen/
 *.ipr
 *.iws
-*.iml
 /android/out/
 com_crashlytics_export_strings.xml
 
