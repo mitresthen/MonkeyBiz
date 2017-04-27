@@ -7,29 +7,17 @@ import com.badlogic.gdx.graphics.Texture;
 /**
  * Created by Havard on 23.04.2017.
  */
-public class Fruit implements Pool.Poolable {
+public class Fruit {
     private Rectangle raindropStat;
-    public boolean alive;
     public Texture fruitTexture;
 
-    public Fruit(Texture fruitTexture){
+    public Fruit(Texture fruitTexture, float x, float y){
         this.raindropStat = new Rectangle();
         raindropStat.width = 128;
         raindropStat.height = 128;
-        this.fruitTexture = fruitTexture;
-    }
-
-    public void init(float x, float y){
         raindropStat.x = x;
         raindropStat.y = y;
-        alive = true;
-    }
-
-    @Override
-    public void reset() {
-        raindropStat.x = 0;
-        raindropStat.y = 0;
-        alive = false;
+        this.fruitTexture = fruitTexture;
     }
 
     public void update(int dropFactor, float delta){

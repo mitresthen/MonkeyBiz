@@ -11,7 +11,6 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.Pool;
 import com.badlogic.gdx.utils.TimeUtils;
 
 /**
@@ -23,6 +22,9 @@ public class GameScreen implements Screen {
     private Texture bananasImage;
     private Texture appleImage;
     private Texture pineappleImage;
+
+    private Texture bedouinManImage;
+    private Sprite bedouinManSprite;
 
     private Texture mainMonkeyImage;
     private Texture mainMonkeyGrabbingImage;
@@ -37,7 +39,6 @@ public class GameScreen implements Screen {
     private Sprite branchTailSprite;
     private Sprite backgroundSprite;
     private final Array<Fruit> activeRaindrops;
-    private final Pool<Fruit> raindropPool;
 
     private long lastDropTime;
     private int dropsGathered;
@@ -59,6 +60,7 @@ public class GameScreen implements Screen {
         mainMonkeyGrabbingImage = new Texture(Gdx.files.internal("mainMonkeyGrabbing.png"));
         monkeyTailBranchImage = new Texture(Gdx.files.internal("monkeyTailBranch.png"));
 
+        prepareBedouinMan();
         prepareBackground();
 
         dropSound = Gdx.audio.newSound(Gdx.files.internal("drop.wav"));
@@ -74,30 +76,26 @@ public class GameScreen implements Screen {
         createMonkey();
 
         activeRaindrops = new Array<Fruit>();
-        raindropPool = new Pool<Fruit>() {
-            @Override
-            protected Fruit newObject() {
-                int rnd = MathUtils.random(0, 2);
-                switch (rnd) {
-                    case 0:
-                        return new Fruit(appleImage);
-                    case 1:
-                        return new Fruit(bananasImage);
-                    case 2:
-                        return new Fruit(pineappleImage);
-                    default:
-                        return new Fruit(appleImage);
-                }
-            }
-        };
 
         lives = 3;
         dropFactor = 300;
         lastDropTime = TimeUtils.nanoTime();
+        lastLostTime = TimeUtils.nanoTime();
+    }
+
+    private void prepareBedouinMan(){
+        bedouinManImage = new Texture(Gdx.files.internal("bedouinMan.png"));
+        bedouinManSprite = new Sprite(bedouinManImage);
+        resetBedouinMan();
+    }
+
+    private void resetBedouinMan(){
+        bedouinManSprite.setSize(190, 300);
+        bedouinManSprite.setPosition(screenWidth, 256);
     }
 
     private void prepareBackground(){
-        backgroundImage = new Texture(Gdx.files.internal("chaosBackground.png"));
+        backgroundImage = new Texture(Gdx.files.internal("desertBackground.png"));
         backgroundImage.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         backgroundSprite = new Sprite(backgroundImage);
         backgroundSprite.setOrigin(0,0);
@@ -118,9 +116,25 @@ public class GameScreen implements Screen {
         branchTailSprite.setY(screenHeight-256);
     }
 
+    private Fruit getRandomFruit(float x, float y){
+        int rnd = MathUtils.random(0, 2);
+        switch (rnd) {
+            case 0:
+                return new Fruit(appleImage, x, y);
+            case 1:
+                return new Fruit(bananasImage, x, y);
+            case 2:
+                return new Fruit(pineappleImage, x, y);
+            default:
+                return new Fruit(appleImage, x, y);
+        }
+    }
+
     private void spawnFruit(){
-        Fruit fruit = raindropPool.obtain();
-        fruit.init(screenWidth, MathUtils.random(fruit.getWidth(), (screenHeight/2)));
+        resetBedouinMan();
+        float yValue = MathUtils.random(256, (screenHeight/2));
+        Fruit fruit = getRandomFruit(screenWidth, yValue);
+        bedouinManSprite.setScale(yValue/bedouinManSprite.getHeight());
         activeRaindrops.add(fruit);
         lastDropTime = TimeUtils.nanoTime();
     }
@@ -149,45 +163,51 @@ public class GameScreen implements Screen {
         game.batch.begin();
 
         renderBackground();
-
-        game.font.getRegion().getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
-        game.font.getData().setScale(2, 2);
-        game.font.draw(game.batch, "Score: " + dropsGathered, 0, screenHeight);
-        String remainingLives = "Lives remaining: " + lives;
-        game.font.draw(game.batch, remainingLives, 3*(screenWidth/4), screenHeight);
+        renderText();
 
         branchTailSprite.draw(game.batch);
         mainMonkey.draw(game.batch);
         for(Fruit fruit : activeRaindrops){
             game.batch.draw(fruit.fruitTexture, fruit.getX(), fruit.getY());
         }
-
+        bedouinManSprite.draw(game.batch);
         game.batch.end();
 
         updateBucket();
 
         if(TimeUtils.nanoTime() - lastDropTime > (5000000000l)) spawnFruit();
+        calculateChanges();
+    }
 
+    private void calculateChanges(){
+        bedouinManSprite.translateX(-dropFactor*Gdx.graphics.getDeltaTime());
         Fruit tempDrop;
         int len = activeRaindrops.size;
         for(int i = len; --i >= 0;){
             tempDrop = activeRaindrops.get(i);
             tempDrop.update(dropFactor, Gdx.graphics.getDeltaTime());
 
-            if(tempDrop.alive == false){
-                activeRaindrops.removeIndex(i);
-                raindropPool.free(tempDrop);
+            if(bedouinManSprite.getBoundingRectangle().overlaps(mainMonkey.getBoundingRectangle())){
+                looseLife();
             }
-
             if(tempDrop.getX() + tempDrop.getWidth() < 0){
                 looseLife();
-                tempDrop.alive = false;
+                activeRaindrops.removeIndex(i);
             }
             else if(tempDrop.overlaps(mainMonkey.getBoundingRectangle())){
                 gatherDrop(tempDrop);
-                tempDrop.alive = false;
+                activeRaindrops.removeIndex(i);
             }
         }
+    }
+
+    private void renderText(){
+        game.font.getRegion().getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        game.font.getData().setScale(4, 3);
+        game.font.draw(game.batch, "Score: " + dropsGathered, 0, screenHeight);
+        String remainingLives = "Lives: " + lives;
+        game.font.draw(game.batch, remainingLives, 3*(screenWidth/4), screenHeight);
+
     }
 
     private float goalY = 0;
@@ -211,7 +231,13 @@ public class GameScreen implements Screen {
         if(mainMonkey.getY() > bucketRestPosition()) mainMonkey.setY(bucketRestPosition());
     }
 
+
+    private long lastLostTime;
     private void looseLife(){
+        if(TimeUtils.nanoTime() - lastLostTime < (2000000000l)){
+            return;
+        }
+        lastLostTime =TimeUtils.nanoTime();
         lives--;
         if(lives == 0){
             endGame();
