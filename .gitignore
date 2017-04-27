@@ -24,7 +24,6 @@ www-test/
 /android/libs/x86/
 /android/libs/x86_64/
 /android/gen/
-.idea/
 *.ipr
 *.iws
 *.iml
@@ -99,7 +98,6 @@ nb-configuration.xml
 ## Gradle
 
 /local.properties
-.gradle/
 gradle-app.setting
 /build/
 /android/build/
