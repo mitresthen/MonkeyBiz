@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Texture;
 
 /**
  * Created by Havard on 23.04.2017.
@@ -12,12 +13,15 @@ public class GameOverScreen implements Screen {
     final Main game;
     final int finalScore;
 
+    private int screenWidth = 1440;
+    private int screenHeight = 2560;
+
     OrthographicCamera camera;
     public GameOverScreen(final Main game, final int finalScore){
         this.game = game;
         this.finalScore = finalScore;
         camera = new OrthographicCamera();
-        camera.setToOrtho(false, 800, 400);
+        camera.setToOrtho(false, screenWidth, screenHeight);
     }
 
     @Override
@@ -34,9 +38,11 @@ public class GameOverScreen implements Screen {
         game.batch.setProjectionMatrix(camera.combined);
 
         game.batch.begin();
-        game.font.draw(game.batch, "Game Over ", 100, 300);
-        game.font.draw(game.batch, "Final score " + finalScore, 100, 200);
-        game.font.draw(game.batch, "Tap anywhere to return to main menu!", 100, 100);
+        game.font.getRegion().getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        game.font.getData().setScale(6, 4);
+        game.font.draw(game.batch, "Game Over ", screenWidth/3, screenHeight-300);
+        game.font.draw(game.batch, "Final score " + finalScore, screenWidth/3, screenHeight-500);
+        game.font.draw(game.batch, "Tap anywhere to \nreturn to main menu!", screenWidth/3 - 50, screenHeight-700);
         game.batch.end();
 
         if(Gdx.input.justTouched()){

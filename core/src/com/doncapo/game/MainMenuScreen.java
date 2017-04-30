@@ -31,7 +31,7 @@ public class MainMenuScreen implements Screen {
 
     }
     private void prepareBackground(){
-        backgroundImage = new Texture(Gdx.files.internal("desertBackground.png"));
+        backgroundImage = new Texture(Gdx.files.internal("themes/desertTheme/background/background.png"));
         backgroundImage.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         backgroundSprite = new Sprite(backgroundImage);
         backgroundSprite.setOrigin(0,0);

@@ -1,0 +1,107 @@
+package com.doncapo.game;
+
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.math.Rectangle;
+
+/**
+ * Created by Havard on 29.04.2017.
+ */
+public class PlayerCharacter {
+    private final int starterLives = 3;
+    public final float bucketRestPosition;
+    private int lives;
+
+    private boolean grabbing;
+
+    private Texture grabbedItemTexture;
+
+    private float screenWidth;
+    private float screenHeight;
+
+    private final float standardWidth = 256;
+    private final float standardHeight = 256;
+    public Rectangle playerRectangle;
+    private Texture defaultTexture;
+    private Texture grabbingTexture;
+
+    private Texture branchTexture;
+    private Rectangle branchRectangle;
+    private final float branchWidth = 256;
+    private final float branchHeight = 64;
+
+    public PlayerCharacter(Texture branchTexture, Texture defaultTexture, Texture grabbingTexture, int screenWidth, int screenHeight){
+        bucketRestPosition = screenHeight-(2*standardHeight);
+        this.lives = starterLives;
+        this.branchTexture = branchTexture;
+        this.defaultTexture = defaultTexture;
+        this.grabbingTexture = grabbingTexture;
+        this.screenHeight = screenHeight;
+        this.screenWidth = screenWidth;
+
+        createMonkey();
+        createMonkeyTail();
+    }
+
+    private void createMonkey(){
+        playerRectangle = new Rectangle();
+        playerRectangle.setSize(standardWidth, standardHeight);
+        playerRectangle.setX((screenWidth/2)-(playerRectangle.getWidth()/2));
+        playerRectangle.setY(bucketRestPosition);
+    }
+
+    private void createMonkeyTail(){
+        branchRectangle = new Rectangle();
+        branchRectangle.setSize(branchWidth, branchHeight);
+        branchRectangle.setX((screenWidth/2)-(branchTexture.getWidth()/2));
+        branchRectangle.setY(screenHeight-branchWidth);
+    }
+
+    public void drawBranch(SpriteBatch batch){
+        drawGeneral(batch, branchTexture, branchRectangle);
+    }
+
+    public void drawPlayer(SpriteBatch batch){
+        if(grabbing){
+            drawGeneral(batch, grabbingTexture, playerRectangle);
+            batch.draw(grabbedItemTexture, (screenWidth/2)-(grabbedItemTexture.getWidth()/2), playerRectangle.getY()-(grabbedItemTexture.getHeight()/2));
+        }
+        else {
+            drawGeneral(batch, defaultTexture, playerRectangle);
+        }
+
+    }
+
+    public void grabItem(Item item){
+        grabbedItemTexture = item.itemTexture;
+        grabbing = true;
+    }
+
+    public void releaseItem(){
+        grabbing = false;
+    }
+
+    public void translateY(float translateVal){
+        playerRectangle.setY(playerRectangle.getY() + translateVal);
+    }
+
+    private void drawGeneral(SpriteBatch batch, Texture texture, Rectangle rectangle){
+        batch.draw(texture, rectangle.getX(), rectangle.getY(), rectangle.getWidth(), rectangle.getHeight());
+    }
+
+    public void update(int dropFactor, float delta){
+        //itemCarrierStat.x -= dropFactor * delta;
+    }
+
+    public int getLives(){
+        return lives;
+    }
+
+    public void gainLife(){
+        lives++;
+    }
+
+    public void looseLife(){
+        lives--;
+    }
+}
