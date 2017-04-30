@@ -42,7 +42,7 @@ public class GameScreen implements Screen {
         theme = new Theme("themes");
         theme.loadRandomTheme();
 
-        playerCharacter = new PlayerCharacter(theme.playerTop, theme.playerMain, theme.playerGrabbing, screenWidth, screenHeight);
+        playerCharacter = new PlayerCharacter(theme.playerTop, theme.playerMain, theme.playerGrabbing, theme.playerTether, screenWidth, screenHeight);
 
         prepareBackground();
 
@@ -81,6 +81,7 @@ public class GameScreen implements Screen {
     }
 
     private void spawnItem(){
+        dropFactor++;
         float yValue = MathUtils.random(512, ((2*screenHeight)/3));
         Item item = getRandomItem(screenWidth, yValue);
         ItemCarrier carrier = getRandomItemCarrier(item);

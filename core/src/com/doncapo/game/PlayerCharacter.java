@@ -2,6 +2,7 @@ package com.doncapo.game;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
 
 /**
@@ -30,17 +31,24 @@ public class PlayerCharacter {
     private final float branchWidth = 256;
     private final float branchHeight = 64;
 
-    public PlayerCharacter(Texture branchTexture, Texture defaultTexture, Texture grabbingTexture, int screenWidth, int screenHeight){
+    private Texture tetherTexture;
+    private Rectangle tetherRectangle;
+    private final float tetherWidth = 256;
+    private final float tetherHeight = 16;
+
+    public PlayerCharacter(Texture branchTexture, Texture defaultTexture, Texture grabbingTexture, Texture tetherTexture, int screenWidth, int screenHeight){
         bucketRestPosition = screenHeight-(2*standardHeight);
         this.lives = starterLives;
         this.branchTexture = branchTexture;
         this.defaultTexture = defaultTexture;
+        this.tetherTexture = tetherTexture;
         this.grabbingTexture = grabbingTexture;
         this.screenHeight = screenHeight;
         this.screenWidth = screenWidth;
 
         createMonkey();
         createMonkeyTail();
+        createTether();
     }
 
     private void createMonkey(){
@@ -57,6 +65,11 @@ public class PlayerCharacter {
         branchRectangle.setY(screenHeight-branchWidth);
     }
 
+    private void createTether(){
+        tetherRectangle = new Rectangle();
+        tetherRectangle.setSize(tetherWidth, tetherHeight);
+    }
+
     public void drawBranch(SpriteBatch batch){
         drawGeneral(batch, branchTexture, branchRectangle);
     }
@@ -69,7 +82,17 @@ public class PlayerCharacter {
         else {
             drawGeneral(batch, defaultTexture, playerRectangle);
         }
+        drawTether(batch);
 
+    }
+
+    private void drawTether(SpriteBatch batch){
+        float segments = (int)(((branchRectangle.getY() - (playerRectangle.getY() + playerRectangle.getHeight()))/tetherRectangle.getHeight()));
+        int segmentsDiscrete = MathUtils.ceil(segments);
+        segmentsDiscrete += 1;
+        for(int i = 0; i< segmentsDiscrete; i++){
+            batch.draw(tetherTexture,(screenWidth/2)-(tetherTexture.getWidth()/2), playerRectangle.getY() + playerRectangle.getHeight() + i*tetherRectangle.getHeight());
+        }
     }
 
     public void grabItem(Item item){

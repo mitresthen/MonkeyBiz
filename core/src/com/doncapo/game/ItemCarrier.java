@@ -22,7 +22,7 @@ public class ItemCarrier {
         this.carriedItem = carriedItem;
         float newHeight = carriedItem.getY()-baselineY;
         float newWidth = (newHeight/baselineHeight)*baselineWidth;
-        reduction = newHeight/8;
+        reduction = newHeight/7;
         itemCarrierStat.setSize(newWidth, newHeight-reduction);
         float fruitMidX = carriedItem.getX()+(carriedItem.getWidth()/2);
         itemCarrierStat.setX(fruitMidX- newWidth/2);

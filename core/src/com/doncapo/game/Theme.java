@@ -28,6 +28,8 @@ public class Theme {
     public Texture playerMain;
     private final String playerGrabbingPath = "playerGrabbing.png";
     public Texture playerGrabbing;
+    private final String playerTetherPath = "tetherSegment.png";
+    public Texture playerTether;
 
     private final String itemsFolder = "items";
     private final String goodItemsFolder = "goodItems";
@@ -67,6 +69,7 @@ public class Theme {
         playerTop = new Texture(Gdx.files.internal(folderCombine(currentPlayerFolder, playerTopPath)));
         playerMain = new Texture(Gdx.files.internal(folderCombine(currentPlayerFolder, playerMainPath)));
         playerGrabbing = new Texture(Gdx.files.internal(folderCombine(currentPlayerFolder, playerGrabbingPath)));
+        playerTether = new Texture(Gdx.files.internal(folderCombine(currentPlayerFolder, playerTetherPath)));
 
     }
 
