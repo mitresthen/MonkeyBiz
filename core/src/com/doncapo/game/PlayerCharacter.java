@@ -1,5 +1,6 @@
 package com.doncapo.game;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
@@ -87,8 +88,9 @@ public class PlayerCharacter {
     }
 
     private void drawTether(SpriteBatch batch){
-        float segments = (int)(((branchRectangle.getY() - (playerRectangle.getY() + playerRectangle.getHeight()))/tetherRectangle.getHeight()));
-        int segmentsDiscrete = MathUtils.ceil(segments);
+        float tetherLength = branchRectangle.getY() - (playerRectangle.getY() + playerRectangle.getHeight());
+        float segments = tetherLength/tetherRectangle.getHeight();
+        int segmentsDiscrete = MathUtils.floor(segments);
         segmentsDiscrete += 1;
         for(int i = 0; i< segmentsDiscrete; i++){
             batch.draw(tetherTexture,(screenWidth/2)-(tetherTexture.getWidth()/2), playerRectangle.getY() + playerRectangle.getHeight() + i*tetherRectangle.getHeight());
@@ -112,8 +114,27 @@ public class PlayerCharacter {
         batch.draw(texture, rectangle.getX(), rectangle.getY(), rectangle.getWidth(), rectangle.getHeight());
     }
 
-    public void update(int dropFactor, float delta){
-        //itemCarrierStat.x -= dropFactor * delta;
+    private float goalY = 0;
+    public void update(float delta){
+        if(playerRectangle.getY() >= bucketRestPosition){
+            releaseItem();
+        }
+        if(goalY < 10){
+            float yMovement = (screenHeight/2)*delta;
+            translateY(yMovement);
+        }
+        if(Gdx.input.isTouched() && playerRectangle.getY() >= bucketRestPosition){
+            goalY += delta*(screenHeight/2);
+        }
+        else{
+            float yMovement = goalY /15;
+            translateY(-yMovement);
+            goalY -= yMovement;
+        }
+        if(goalY > bucketRestPosition)
+            goalY = bucketRestPosition;
+        if(playerRectangle.getY() < 0) playerRectangle.setY(0);
+        if(playerRectangle.getY() > bucketRestPosition) playerRectangle.setY(bucketRestPosition);
     }
 
     public int getLives(){

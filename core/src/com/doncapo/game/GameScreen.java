@@ -35,6 +35,8 @@ public class GameScreen implements Screen {
     private int screenWidth = 1440;
     private int screenHeight = 2560;
 
+    private long spawnInterval;
+
 
     public GameScreen(final Main game) {
         this.game = game;
@@ -58,7 +60,8 @@ public class GameScreen implements Screen {
         activeCarriers = new Array<ItemCarrier>();
 
         dropFactor = 300;
-        lastDropTime = TimeUtils.nanoTime();
+        spawnInterval = 5000000000l;
+        lastDropTime = TimeUtils.nanoTime() - spawnInterval;
     }
 
 
@@ -67,8 +70,6 @@ public class GameScreen implements Screen {
         backgroundSprite.setOrigin(0,0);
         backgroundSprite.setSize(screenWidth, screenHeight);
     }
-
-
 
     private Item getRandomItem(float x, float y){
         int rnd = MathUtils.random(0, theme.goodItems.size-1);
@@ -81,7 +82,6 @@ public class GameScreen implements Screen {
     }
 
     private void spawnItem(){
-        dropFactor++;
         float yValue = MathUtils.random(512, ((2*screenHeight)/3));
         Item item = getRandomItem(screenWidth, yValue);
         ItemCarrier carrier = getRandomItemCarrier(item);
@@ -122,9 +122,9 @@ public class GameScreen implements Screen {
         }
         game.batch.end();
 
-        updateBucket(delta);
+        playerCharacter.update(delta);
 
-        if(TimeUtils.nanoTime() - lastDropTime > (5000000000l)) spawnItem();
+        if(TimeUtils.nanoTime() - lastDropTime > (spawnInterval)) spawnItem();
         calculateChanges(delta);
     }
 
@@ -132,6 +132,7 @@ public class GameScreen implements Screen {
         calculateItemChanges(delta);
         calculateCarrierChanges(delta);
     }
+
     private void calculateItemChanges(float delta){
         Item tempDrop;
         int len = activeItems.size;
@@ -178,30 +179,6 @@ public class GameScreen implements Screen {
         game.font.draw(game.batch, remainingLives, 3*(screenWidth/4), screenHeight);
 
     }
-
-    private float goalY = 0;
-    private void updateBucket(float delta){
-        if(playerCharacter.playerRectangle.getY() >= playerCharacter.bucketRestPosition){
-            playerCharacter.releaseItem();
-        }
-        if(goalY < 10){
-            float yMovement = (screenHeight/2)*delta;
-            playerCharacter.translateY(yMovement);
-        }
-        if(Gdx.input.isTouched() && playerCharacter.playerRectangle.getY() >= playerCharacter.bucketRestPosition){
-            goalY += delta*(screenHeight/2);
-        }
-        else{
-            float yMovement = goalY /15;
-            playerCharacter.translateY(-yMovement);
-            goalY -= yMovement;
-        }
-        if(goalY > playerCharacter.bucketRestPosition)
-            goalY = playerCharacter.bucketRestPosition;
-        if(playerCharacter.playerRectangle.getY() < 0) playerCharacter.playerRectangle.setY(0);
-        if(playerCharacter.playerRectangle.getY() > playerCharacter.bucketRestPosition) playerCharacter.playerRectangle.setY(playerCharacter.bucketRestPosition);
-    }
-
 
     private void looseLife(){
         playerCharacter.looseLife();
