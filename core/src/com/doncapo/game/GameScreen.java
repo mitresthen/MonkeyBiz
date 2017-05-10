@@ -2,9 +2,6 @@ package com.doncapo.game;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.audio.Music;
-import com.badlogic.gdx.audio.Sound;
-import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
@@ -13,7 +10,8 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.TimeUtils;
-
+import com.doncapo.game.Items.ItemFactory;
+import com.doncapo.game.Items.Item;
 /**
  * Created by Havard on 17.04.2017.
  */
@@ -29,8 +27,6 @@ public class GameScreen implements Screen {
     private final Array<ItemCarrier> activeCarriers;
 
     private long lastDropTime;
-    private int dropsGathered;
-    private int dropFactor;
 
     private int screenWidth = 1440;
     private int screenHeight = 2560;
@@ -50,7 +46,6 @@ public class GameScreen implements Screen {
 
         theme.loopingMusic.setLooping(true);
 
-
         camera = new OrthographicCamera();
         camera.setToOrtho(false, screenWidth, screenHeight);
 
@@ -59,9 +54,8 @@ public class GameScreen implements Screen {
         activeItems = new Array<Item>();
         activeCarriers = new Array<ItemCarrier>();
 
-        dropFactor = 300;
         spawnInterval = 5000000000l;
-        lastDropTime = TimeUtils.nanoTime() - spawnInterval;
+        lastDropTime = TimeUtils.nanoTime() - spawnInterval/2;
     }
 
 
@@ -71,20 +65,21 @@ public class GameScreen implements Screen {
         backgroundSprite.setSize(screenWidth, screenHeight);
     }
 
-    private Item getRandomItem(float x, float y){
-        int rnd = MathUtils.random(0, theme.goodItems.size-1);
-        return new Item(theme.goodItems.get(rnd), x, y);
+    private Item getRandomItem(float x, float y, int movementSpeed){
+        return ItemFactory.createRandomItem(theme, x, y, movementSpeed);
     }
 
-    private ItemCarrier getRandomItemCarrier(Item item){
+    private ItemCarrier getRandomItemCarrier(com.doncapo.game.Items.Item item, int movementSpeed){
         int rnd = MathUtils.random(0, theme.characters.size-1);
-        return new ItemCarrier(theme.characters.get(rnd), item);
+        return new ItemCarrier(theme.characters.get(rnd), item, movementSpeed);
     }
 
     private void spawnItem(){
-        float yValue = MathUtils.random(512, ((2*screenHeight)/3));
-        Item item = getRandomItem(screenWidth, yValue);
-        ItemCarrier carrier = getRandomItemCarrier(item);
+        float yValue = MathUtils.random(512, (2*screenHeight)/3);
+        spawnInterval = MathUtils.random(3000000000l, 6000000000l);
+        int movementSpeed = MathUtils.random(300, 380);
+        Item item = getRandomItem(screenWidth, yValue, movementSpeed);
+        ItemCarrier carrier = getRandomItemCarrier(item, movementSpeed);
         activeCarriers.add(carrier);
         activeItems.add(item);
         lastDropTime = TimeUtils.nanoTime();
@@ -92,6 +87,7 @@ public class GameScreen implements Screen {
 
     @Override
     public void show() {
+        theme.gameOverSound.stop();
         theme.loopingMusic.play();
     }
 
@@ -111,14 +107,16 @@ public class GameScreen implements Screen {
 
         renderBackground();
         renderText();
+        drawLives();
         playerCharacter.drawBranch(game.batch);
         playerCharacter.drawPlayer(game.batch);
 
-        for(Item item : activeItems){
-            game.batch.draw(item.itemTexture, item.getX(), item.getY());
-        }
         for(ItemCarrier carriers : activeCarriers){
-            game.batch.draw(carriers.itemCarrierTexture, carriers.getX(), carriers.getY(), carriers.getWidth(), carriers.getHeight()+ carriers.getReduction());
+            carriers.draw(game.batch);
+        }
+
+        for(com.doncapo.game.Items.Item item : activeItems){
+            game.batch.draw(item.itemTexture, item.getX(), item.getY());
         }
         game.batch.end();
 
@@ -138,15 +136,19 @@ public class GameScreen implements Screen {
         int len = activeItems.size;
         for(int i = len; --i >= 0;){
             tempDrop = activeItems.get(i);
-            tempDrop.update(dropFactor, delta);
+            tempDrop.update(delta);
 
             if(tempDrop.getX() + tempDrop.getWidth() < 0){
-                looseLife();
+                tempDrop.effectOffScreen(playerCharacter, theme);
                 activeItems.removeIndex(i);
             }
             else if(tempDrop.overlaps(playerCharacter.playerRectangle)){
                 gatherItem(tempDrop);
                 activeItems.removeIndex(i);
+            }
+
+            if(!stillAlive()){
+                endGame();
             }
         }
     }
@@ -156,7 +158,7 @@ public class GameScreen implements Screen {
         int lenCarriersList = activeCarriers.size;
         for(int i = lenCarriersList; --i >= 0;){
             tempItemCarrier = activeCarriers.get(i);
-            tempItemCarrier.update(dropFactor, delta);
+            tempItemCarrier.update(delta);
 
             if(tempItemCarrier.overlaps(playerCharacter.playerRectangle)){
                 if(!tempItemCarrier.spentDamage){
@@ -167,35 +169,54 @@ public class GameScreen implements Screen {
             if(tempItemCarrier.getX() + tempItemCarrier.getWidth() < 0){
                 activeCarriers.removeIndex(i);
             }
+
         }
     }
 
+    private void drawLives(){
+        int lives = playerCharacter.getLives();
+        final int size = 64;
+        for(int i = 1; i<= lives; i++){
+            game.batch.draw(theme.lifeTexture, screenWidth-(size*i), screenHeight-size, size, size);
+        }
+    }
 
     private void renderText(){
         game.font.getRegion().getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         game.font.getData().setScale(4, 3);
-        game.font.draw(game.batch, "Score: " + dropsGathered, 0, screenHeight);
-        String remainingLives = "Lives: " + playerCharacter.getLives();
-        game.font.draw(game.batch, remainingLives, 3*(screenWidth/4), screenHeight);
+        game.font.draw(game.batch, "Score: " + playerCharacter.getScore(), 0, screenHeight);
+        //String remainingLives = "Lives: " + playerCharacter.getLives();
+        //game.font.draw(game.batch, remainingLives, 3*(screenWidth/4), screenHeight);
 
     }
 
     private void looseLife(){
         playerCharacter.looseLife();
-        if(playerCharacter.getLives() == 0){
+        if(!stillAlive()){
             endGame();
+        }else{
+            theme.lostLifeSound.play();
+        }
+    }
+
+    private boolean stillAlive(){
+        if(playerCharacter.getLives() < 0) {
+            return false;
+        }
+        else{
+            return true;
         }
     }
 
     private void gatherItem(Item gatheredItem){
-        dropsGathered++;
+        gatheredItem.effectGather(playerCharacter, theme);
         playerCharacter.grabItem(gatheredItem);
-        theme.actionSound.play();
     }
 
     private void endGame(){
         theme.loopingMusic.stop();
-        game.setScreen(new GameOverScreen(game, dropsGathered));
+        theme.gameOverSound.play();
+        game.setScreen(new GameOverScreen(game, playerCharacter.getScore()));
     }
 
     @Override

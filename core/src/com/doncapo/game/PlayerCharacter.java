@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
+import com.doncapo.game.Items.Item;
 
 /**
  * Created by Havard on 29.04.2017.
@@ -13,6 +14,7 @@ public class PlayerCharacter {
     private final int starterLives = 3;
     public final float bucketRestPosition;
     private int lives;
+    private int score;
 
     private boolean grabbing;
 
@@ -46,6 +48,7 @@ public class PlayerCharacter {
         this.grabbingTexture = grabbingTexture;
         this.screenHeight = screenHeight;
         this.screenWidth = screenWidth;
+        this.score = 0;
 
         createMonkey();
         createMonkeyTail();
@@ -147,5 +150,13 @@ public class PlayerCharacter {
 
     public void looseLife(){
         lives--;
+    }
+
+    public void gainScore(){
+        score++;
+    }
+
+    public int getScore(){
+        return score;
     }
 }

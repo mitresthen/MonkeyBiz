@@ -30,22 +30,34 @@ public class Theme {
     public Texture playerGrabbing;
     private final String playerTetherPath = "tetherSegment.png";
     public Texture playerTether;
+    private final String lifeImagePath = "life.png";
+    public Texture lifeTexture;
 
     private final String itemsFolder = "items";
     private final String goodItemsFolder = "goodItems";
     public final Array<Texture> goodItems;
+    private final String badItemsFolder = "badItems";
+    public final Array<Texture> badItems;
+    private final String bonusItemsFolder = "bonusItems";
+    public final Array<Texture> bonusItems;
 
 
     private final String soundsFolder = "sounds";
-    private final String actionFile = "action.wav";
+    private final String actionFile = "action.ogg";
     public Sound actionSound;
-    private final String musicFile = "music.mp3";
+    private final String musicFile = "music2.ogg";
     public Music loopingMusic;
+    private final String gameOverFile = "gameOver.ogg";
+    public Sound gameOverSound;
+    private final String lostLifeFile = "lostlife.ogg";
+    public Sound lostLifeSound;
 
 
     public Theme(String basePath){
         this.basePath = basePath;
         goodItems = new Array<Texture>();
+        badItems = new Array<Texture>();
+        bonusItems = new Array<Texture>();
         characters = new Array<Texture>();
     }
 
@@ -57,11 +69,15 @@ public class Theme {
 
         String currentItemsFolder = folderCombine(theme, itemsFolder);
         loadTexturesForFolder(goodItems, folderCombine(currentItemsFolder, goodItemsFolder));
+        loadTexturesForFolder(badItems, folderCombine(currentItemsFolder, badItemsFolder));
+        loadTexturesForFolder(bonusItems, folderCombine(currentItemsFolder, bonusItemsFolder));
 
         loadTexturesForFolder(characters, folderCombine(theme, charactersFolder));
 
         String currentSoundsFolder = folderCombine(theme, soundsFolder);
         actionSound = Gdx.audio.newSound(Gdx.files.internal(folderCombine(currentSoundsFolder, actionFile)));
+        gameOverSound = Gdx.audio.newSound(Gdx.files.internal(folderCombine(currentSoundsFolder, gameOverFile)));
+        lostLifeSound = Gdx.audio.newSound(Gdx.files.internal(folderCombine(currentSoundsFolder, lostLifeFile)));
         loopingMusic = Gdx.audio.newMusic(Gdx.files.internal(folderCombine(currentSoundsFolder, musicFile)));
         backgroundTexture = new Texture(Gdx.files.internal(folderCombine(theme, backgroundPath)));
 
@@ -70,6 +86,7 @@ public class Theme {
         playerMain = new Texture(Gdx.files.internal(folderCombine(currentPlayerFolder, playerMainPath)));
         playerGrabbing = new Texture(Gdx.files.internal(folderCombine(currentPlayerFolder, playerGrabbingPath)));
         playerTether = new Texture(Gdx.files.internal(folderCombine(currentPlayerFolder, playerTetherPath)));
+        lifeTexture = new Texture(Gdx.files.internal(folderCombine(currentPlayerFolder, lifeImagePath)));
 
     }
 

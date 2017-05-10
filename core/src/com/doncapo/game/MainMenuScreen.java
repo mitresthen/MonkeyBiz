@@ -48,8 +48,9 @@ public class MainMenuScreen implements Screen {
         game.batch.begin();
         backgroundSprite.draw(game.batch);
         game.font.getData().setScale(5, 5);
-        game.font.draw(game.batch, "Welcome to Main!!! ", screenWidth/3, 2*screenHeight/3);
-        game.font.draw(game.batch, "Tap anywhere to begin!", screenWidth/3, 2*screenHeight/3 - 200);
+        game.font.draw(game.batch, "Welcome", screenWidth/3, 2*screenHeight/3);
+        game.font.draw(game.batch, "Press, hold and release \nto launch monkey", screenWidth/3, 2*screenHeight/3 - 200);
+        game.font.draw(game.batch, "Tap anywhere to begin", screenWidth/3, 2*screenHeight/3 - 400);
         game.batch.end();
 
         if(Gdx.input.justTouched()){
